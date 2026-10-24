@@ -4,7 +4,7 @@ const BASE = "http://127.0.0.1:7420";
 const api = globalThis.chrome ?? globalThis.browser;
 
 api.runtime.onMessage.addListener((m, _sender, reply) => {
-  const headers = { "X-Pip": "1" };
+  const headers = { "X-Tuiostv": "1" };
   const id = encodeURIComponent(m.id);
   let req;
   if (m.op === "poll") {

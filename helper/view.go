@@ -90,9 +90,9 @@ func runView(port string, args []string) {
 			v.blocks = true
 		}
 	}
-	// TUIOS_PIP_REGION=WxH limits drawing to the top-left corner, which is
+	// TUIOSTV_REGION=WxH limits drawing to the top-left corner, which is
 	// the part tuios's pip view copies
-	fmt.Sscanf(os.Getenv("TUIOS_PIP_REGION"), "%dx%d", &v.regW, &v.regH)
+	fmt.Sscanf(os.Getenv("TUIOSTV_REGION"), "%dx%d", &v.regW, &v.regH)
 	restore := rawMode()
 	quit := make(chan struct{})
 	var once sync.Once
@@ -109,7 +109,7 @@ func runView(port string, args []string) {
 	go func() {
 		for s := range sig {
 			if s != syscall.SIGWINCH {
-				if os.Getenv("TUIOS_PIP_DEBUG") != "" {
+				if os.Getenv("TUIOSTV_DEBUG") != "" {
 					fmt.Fprintf(os.Stderr, "signal: %v\n", s)
 				}
 				stop()
@@ -168,7 +168,7 @@ func (v *tview) resize() {
 		v.cols, v.rows = 80, 24
 	}
 	v.cellRatio = 2.0
-	if f, err := strconv.ParseFloat(os.Getenv("TUIOS_PIP_CELL"), 64); err == nil && f > 0 {
+	if f, err := strconv.ParseFloat(os.Getenv("TUIOSTV_CELL"), 64); err == nil && f > 0 {
 		v.cellRatio = f
 	} else if ws.Xpixel > 0 && ws.Ypixel > 0 {
 		v.cellRatio = (float64(ws.Ypixel) / float64(v.rows)) / (float64(ws.Xpixel) / float64(v.cols))
@@ -178,7 +178,7 @@ func (v *tview) resize() {
 func (v *tview) post(msg map[string]any) {
 	b, _ := json.Marshal(msg)
 	req, _ := http.NewRequest("POST", v.base+"/msg?from=viewer&id="+v.id, bytes.NewReader(b))
-	req.Header.Set("X-Pip", "1")
+	req.Header.Set("X-Tuiostv", "1")
 	req.Header.Set("Content-Type", "application/json")
 	if r, err := http.DefaultClient.Do(req); err == nil {
 		r.Body.Close()
@@ -188,10 +188,10 @@ func (v *tview) post(msg map[string]any) {
 func (v *tview) pollLoop(stop func()) {
 	for {
 		req, _ := http.NewRequest("GET", v.base+"/poll?role=viewer&id="+v.id, nil)
-		req.Header.Set("X-Pip", "1")
+		req.Header.Set("X-Tuiostv", "1")
 		r, err := http.DefaultClient.Do(req)
 		if err != nil {
-			v.setNote("Lost the tuios-pip helper. Retrying...")
+			v.setNote("Lost the tuiostv helper. Retrying...")
 			time.Sleep(2 * time.Second)
 			v.post(map[string]any{"type": "join"})
 			continue
@@ -288,10 +288,10 @@ func (v *tview) startDecoder(gen int) {
 	if err != nil {
 		ffmpeg = "/opt/homebrew/bin/ffmpeg"
 	}
-	width := envInt("TUIOS_PIP_WIDTH", 640)
+	width := envInt("TUIOSTV_WIDTH", 640)
 	if v.blocks {
 		// a few source pixels per half-block keep the averaging smooth
-		width = envInt("TUIOS_PIP_WIDTH", 240)
+		width = envInt("TUIOSTV_WIDTH", 240)
 	}
 	cmd := exec.Command(ffmpeg, "-loglevel", "error",
 		// small probe + low_delay: first frame in ~0.1s instead of ~1.6s.
@@ -311,9 +311,9 @@ func (v *tview) startDecoder(gen int) {
 	}
 	d := &decoder{gen: gen, cmd: cmd, feed: make(chan []byte, 512)}
 	v.dec, v.gen, v.note = d, gen, ""
-	// TUIOS_PIP_DUMP=file keeps a copy of what ffmpeg gets, for debugging
+	// TUIOSTV_DUMP=file keeps a copy of what ffmpeg gets, for debugging
 	var dump io.Writer = io.Discard
-	if p := os.Getenv("TUIOS_PIP_DUMP"); p != "" {
+	if p := os.Getenv("TUIOSTV_DUMP"); p != "" {
 		if f, err := os.Create(p); err == nil {
 			dump = f
 		}
@@ -380,7 +380,7 @@ func (v *tview) readFrames(d *decoder, out io.Reader) {
 }
 
 func (v *tview) drawLoop(quit chan struct{}) {
-	tick := time.NewTicker(time.Second / time.Duration(envInt("TUIOS_PIP_FPS", 30)))
+	tick := time.NewTicker(time.Second / time.Duration(envInt("TUIOSTV_FPS", 30)))
 	defer tick.Stop()
 	for {
 		select {
@@ -677,14 +677,14 @@ func (v *tview) keys(stop func()) {
 	for {
 		n, err := os.Stdin.Read(buf)
 		if err != nil {
-			if os.Getenv("TUIOS_PIP_DEBUG") != "" {
+			if os.Getenv("TUIOSTV_DEBUG") != "" {
 				fmt.Fprintf(os.Stderr, "stdin: %v\n", err)
 			}
 			stop()
 			return
 		}
 		in := string(buf[:n])
-		if os.Getenv("TUIOS_PIP_DEBUG") != "" {
+		if os.Getenv("TUIOSTV_DEBUG") != "" {
 			fmt.Fprintf(os.Stderr, "keys %q\n", in)
 		}
 		for len(in) > 0 {

@@ -1,5 +1,5 @@
 #!/bin/sh
-# tuios-pip [popup|corner|pane]: toggle the video viewer. Starts the helper
+# tuiostv [popup|corner|pane]: toggle the video viewer. Starts the helper
 # first if it's not up.
 #   popup   floating in the middle, full quality (default)
 #   corner  tuios's pip view in a corner while you work; half-block pixels,
@@ -7,22 +7,22 @@
 #           pip.width and pip.height
 #   pane    a normal tiled pane in the current layout, full quality
 #
-#   TUIOS_PIP_MODE       default mode when none is given
-#   TUIOS_PIP_PORT       helper port (default 7420, the extension expects 7420)
-#   TUIOS_PIP_SIZE       popup width as % of the screen (default 60)
-#   TUIOS_PIP_CELL       cell height / cell width in pixels (default 2.0)
-#   TUIOS_PIP_WORKSPACE  where corner mode parks its pane (default 9)
-#   TUIOS_PIP_SERVER     tuios --server to use (default: the default one)
+#   TUIOSTV_MODE       default mode when none is given
+#   TUIOSTV_PORT       helper port (default 7420, the extension expects 7420)
+#   TUIOSTV_SIZE       popup width as % of the screen (default 60)
+#   TUIOSTV_CELL       cell height / cell width in pixels (default 2.0)
+#   TUIOSTV_WORKSPACE  where corner mode parks its pane (default 9)
+#   TUIOSTV_SERVER     tuios --server to use (default: the default one)
 PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
-mode="${1:-${TUIOS_PIP_MODE:-popup}}"
-port="${TUIOS_PIP_PORT:-7420}"
-size="${TUIOS_PIP_SIZE:-60}"
+mode="${1:-${TUIOSTV_MODE:-popup}}"
+port="${TUIOSTV_PORT:-7420}"
+size="${TUIOSTV_SIZE:-60}"
 size="${size%\%}"
-name=tuios-pip
-state="${TMPDIR:-/tmp}/tuios-pip-$(id -u)"
+name=tuiostv
+state="${TMPDIR:-/tmp}/tuiostv-$(id -u)"
 here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
-helper=$(command -v tuios-pip-helper || echo "$here/bin/tuios-pip-helper")
-tuios() { command tuios ${TUIOS_PIP_SERVER:+--server "$TUIOS_PIP_SERVER"} "$@"; }
+helper=$(command -v tuiostv-helper || echo "$here/bin/tuiostv-helper")
+tuios() { command tuios ${TUIOSTV_SERVER:+--server "$TUIOSTV_SERVER"} "$@"; }
 
 # one cmd+p press runs this twice about a second apart (press and release
 # both reach the bind), which would open and instantly close the viewer
@@ -39,11 +39,11 @@ if tuios close-window "$name" >/dev/null 2>&1; then
 fi
 
 if ! curl -fs "http://127.0.0.1:$port/health" >/dev/null 2>&1; then
-  TUIOS_PIP_PORT="$port" nohup "$helper" >"${TMPDIR:-/tmp}/tuios-pip.log" 2>&1 &
+  TUIOSTV_PORT="$port" nohup "$helper" >"${TMPDIR:-/tmp}/tuiostv.log" 2>&1 &
   i=0
   until curl -fs "http://127.0.0.1:$port/health" >/dev/null 2>&1; do
     i=$((i + 1))
-    [ "$i" -gt 20 ] && { echo "tuios-pip: helper did not start, see ${TMPDIR:-/tmp}/tuios-pip.log" >&2; exit 1; }
+    [ "$i" -gt 20 ] && { echo "tuiostv: helper did not start, see ${TMPDIR:-/tmp}/tuiostv.log" >&2; exit 1; }
     sleep 0.1
   done
 fi
@@ -54,8 +54,8 @@ corner)
   pw=$(tuios get-config pip.width 2>/dev/null | tail -1)
   ph=$(tuios get-config pip.height 2>/dev/null | tail -1)
   region="$(( ${pw:-40} - 2 ))x$(( ${ph:-12} - 2 ))"
-  id=$(tuios new-window "$name" --workspace "${TUIOS_PIP_WORKSPACE:-9}" --no-focus --print-id -- \
-    env TUIOS_PIP_REGION="$region" "$helper" view --blocks | tail -1)
+  id=$(tuios new-window "$name" --workspace "${TUIOSTV_WORKSPACE:-9}" --no-focus --print-id -- \
+    env TUIOSTV_REGION="$region" "$helper" view --blocks | tail -1)
   tuios pip "$id" >/dev/null
   ;;
 pane)
@@ -64,9 +64,9 @@ pane)
 *)
   # fit the popup to the video's shape so there are no black bars. The
   # extra rows/cols are the popup border and the viewer's two-line bar.
-  dims=$(curl -fs -H "X-Pip: 1" "http://127.0.0.1:$port/status" | sed -n 's/.*"height":\([0-9]*\).*"width":\([0-9]*\).*/\2 \1/p')
+  dims=$(curl -fs -H "X-Tuiostv: 1" "http://127.0.0.1:$port/status" | sed -n 's/.*"height":\([0-9]*\).*"width":\([0-9]*\).*/\2 \1/p')
   screen=$(tuios session-info --json 2>/dev/null | awk -F'[:,]' '/"session_width"/{w=$2} /"session_height"/{h=$2} END{print w+0, h+0}')
-  geom=$(echo "$dims $screen" | awk -v pct="$size" -v cell="${TUIOS_PIP_CELL:-2.0}" '
+  geom=$(echo "$dims $screen" | awk -v pct="$size" -v cell="${TUIOSTV_CELL:-2.0}" '
     NF == 4 && $1 > 0 && $2 > 0 && $3 > 0 && $4 > 0 {
       vw = $1; vh = $2; sw = $3; sh = $4; padc = 2; padr = 4
       cols = int(sw * pct / 100); maxr = int(sh * 0.85)

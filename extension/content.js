@@ -1,12 +1,12 @@
 // Runs in every frame. Stays quiet until a video plays, then records that
-// video in short WebM slices and sends them to the tuios-pip viewer through
+// video in short WebM slices and sends them to the tuiostv viewer through
 // the helper, and takes controls back.
 //
 // Not WebRTC: Firefox only gathers ICE candidates on the default-route
 // interface (a VPN's utun, often), and a Mac can't reach itself there.
 (() => {
   // the viewer page plays a video too; sharing it back would loop
-  if (document.querySelector('meta[name="tuios-pip"]')) return;
+  if (document.querySelector('meta[name="tuiostv"]')) return;
   const api = globalThis.chrome ?? globalThis.browser;
   // randomUUID is missing on plain http pages
   const id = crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
@@ -154,7 +154,7 @@
         try {
           handle(m);
         } catch (e) {
-          console.debug("[tuios-pip]", m.type, e);
+          console.debug("[tuiostv]", m.type, e);
         }
       }
     }

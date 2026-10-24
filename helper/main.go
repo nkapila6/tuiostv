@@ -1,4 +1,4 @@
-// tuios-pip helper: serves the viewer page and relays recorded video slices,
+// tuiostv helper: serves the viewer page and relays recorded video slices,
 // playback state and player controls between the browser extension and the
 // viewer.
 package main
@@ -17,8 +17,8 @@ import (
 	"time"
 )
 
-// TUIOS_PIP_DEBUG=1 logs every message type
-var debug = os.Getenv("TUIOS_PIP_DEBUG") != ""
+// TUIOSTV_DEBUG=1 logs every message type
+var debug = os.Getenv("TUIOSTV_DEBUG") != ""
 
 //go:embed viewer
 var viewerFS embed.FS
@@ -371,8 +371,8 @@ func guard(port string, next http.Handler) http.Handler {
 			http.Error(w, "bad host", http.StatusForbidden)
 			return
 		}
-		if r.URL.Path != "/" && r.URL.Path != "/health" && r.Header.Get("X-Pip") != "1" {
-			http.Error(w, "missing X-Pip header", http.StatusForbidden)
+		if r.URL.Path != "/" && r.URL.Path != "/health" && r.Header.Get("X-Tuiostv") != "1" {
+			http.Error(w, "missing X-Tuiostv header", http.StatusForbidden)
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -380,7 +380,7 @@ func guard(port string, next http.Handler) http.Handler {
 }
 
 func main() {
-	port := os.Getenv("TUIOS_PIP_PORT")
+	port := os.Getenv("TUIOSTV_PORT")
 	if port == "" {
 		port = "7420"
 	}
@@ -410,6 +410,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("tuios-pip on http://127.0.0.1:%s", port)
+	log.Printf("tuiostv on http://127.0.0.1:%s", port)
 	log.Fatal(http.Serve(ln, guard(port, mux)))
 }

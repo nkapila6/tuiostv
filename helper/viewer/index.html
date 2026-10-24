@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="tuios-pip" content="viewer">
-<title>tuios pip</title>
+<meta name="tuiostv" content="viewer">
+<title>tuiostv</title>
 <style>
   :root {
     --bg: #000;
@@ -69,7 +69,7 @@
 <video id="v" autoplay muted playsinline></video>
 <canvas id="c"></canvas>
 <div id="picker" hidden><div id="panel"><h2>Videos in your browser</h2><div id="plist"></div><div class="help">&uarr;&darr; choose &middot; enter show &middot; esc close</div></div></div>
-<div id="msg"><strong>Nothing playing</strong><span id="hint">Play a video in Firefox or Chrome with the tuios-pip extension on.</span></div>
+<div id="msg"><strong>Nothing playing</strong><span id="hint">Play a video in Firefox or Chrome with the tuiostv extension on.</span></div>
 <div id="hud">
   <div id="title"></div>
   <div id="row">
@@ -99,7 +99,7 @@ function send(msg) {
     try {
       const r = await fetch(`/msg?from=viewer&id=${id}`, {
         method: "POST",
-        headers: { "X-Pip": "1", "Content-Type": "application/json" },
+        headers: { "X-Tuiostv": "1", "Content-Type": "application/json" },
         body: JSON.stringify(msg),
       });
       if (r.status === 410) replaced();
@@ -128,7 +128,7 @@ function teardown() {
 
 function idle(text) {
   teardown();
-  $("#hint").textContent = text || "Play a video in Firefox or Chrome with the tuios-pip extension on.";
+  $("#hint").textContent = text || "Play a video in Firefox or Chrome with the tuiostv extension on.";
 }
 
 function begin(m) {
@@ -305,11 +305,11 @@ async function poll() {
   polling = true;
   while (!stopped) {
     try {
-      const r = await fetch(`/poll?role=viewer&id=${id}`, { headers: { "X-Pip": "1" } });
+      const r = await fetch(`/poll?role=viewer&id=${id}`, { headers: { "X-Tuiostv": "1" } });
       if (r.status === 410) return replaced();
       for (const m of await r.json()) await handle(m);
     } catch {
-      idle("Lost the tuios-pip helper. Retrying...");
+      idle("Lost the tuiostv helper. Retrying...");
       await new Promise((ok) => setTimeout(ok, 2000));
     }
   }
@@ -319,7 +319,7 @@ async function join() {
   try {
     await fetch(`/msg?from=viewer&id=${id}`, {
       method: "POST",
-      headers: { "X-Pip": "1", "Content-Type": "application/json" },
+      headers: { "X-Tuiostv": "1", "Content-Type": "application/json" },
       body: JSON.stringify({ type: "join" }),
     });
   } catch {}
@@ -371,7 +371,7 @@ addEventListener("mousemove", nudge);
 addEventListener("pagehide", () => {
   if (!stopped) fetch(`/msg?from=viewer&id=${id}`, {
     method: "POST", keepalive: true,
-    headers: { "X-Pip": "1", "Content-Type": "application/json" },
+    headers: { "X-Tuiostv": "1", "Content-Type": "application/json" },
     body: JSON.stringify({ type: "bye" }),
   });
 });
